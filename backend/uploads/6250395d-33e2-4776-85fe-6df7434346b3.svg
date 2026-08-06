@@ -1,0 +1,45 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- Fondo con bordes redondeados (Estilo Icono Adaptativo) -->
+<rect width="1024" height="1024" rx="200" fill="#2563EB"/>
+
+<!-- Cuerpo del Camión (Contenedor/Carga) -->
+
+<path
+d="M250 350H650V650H250V350Z"
+fill="white"
+/>
+
+<!-- Cabina del Camión -->
+
+<path
+d="M660 450H740C756.569 450 770 463.431 770 480V650H660V450Z"
+fill="white"
+/>
+
+<!-- Ventana de la cabina -->
+
+<path
+d="M685 480H730V540H660V505C660 491.193 671.193 480 685 480Z"
+fill="#2563EB"
+opacity="0.8"
+/>
+
+<!-- Ruedas -->
+
+<circle cx="350" cy="680" r="50" fill="white"/>
+<circle cx="550" cy="680" r="50" fill="white"/>
+<circle cx="715" cy="680" r="50" fill="white"/>
+
+<!-- Detalles: Luces/Reflejos -->
+
+<rect x="750" y="580" width="20" height="40" rx="5" fill="#FDE047"/>
+
+<!-- Línea de sombra/suelo para dar profundidad -->
+
+<rect x="250" y="750" width="520" height="10" rx="5" fill="white" opacity="0.3"/>
+
+<style>
+svg { shape-rendering: geometricPrecision; }
+</style>
+
+</svg>

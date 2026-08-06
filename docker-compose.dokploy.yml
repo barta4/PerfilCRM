@@ -1,0 +1,76 @@
+services:
+  puresa-backend:
+    image: alfredobartaburu/crm-backend:v2.1
+    platform: linux/amd64
+    container_name: puresa-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Configure DATABASE_URL and GOOGLE_AI_KEY in Dokploy Environment Variables
+      JWT_SECRET: "puresa_crm_production_secret_key_2026"
+      CORS_ORIGINS: "https://crmpuresa.duckdns.org"
+    networks:
+      - dokploy-network
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.puresa-backend.rule=Host(`crmpuresa.duckdns.org`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.puresa-backend.entrypoints=websecure"
+      - "traefik.http.routers.puresa-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.puresa-backend.loadbalancer.server.port=3001"
+    depends_on:
+      puresa-db:
+        condition: service_healthy
+
+  puresa-frontend:
+    image: alfredobartaburu/crm-frontend:v2.1
+    platform: linux/amd64
+    container_name: puresa-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: https://crmpuresa.duckdns.org
+    networks:
+      - dokploy-network
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.puresa-frontend.rule=Host(`crmpuresa.duckdns.org`)"
+      - "traefik.http.routers.puresa-frontend.entrypoints=websecure"
+      - "traefik.http.routers.puresa-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.puresa-frontend.loadbalancer.server.port=3000"
+    depends_on:
+      - puresa-backend
+
+  puresa-db:
+    image: postgres:16-alpine
+    platform: linux/amd64
+    container_name: puresa-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      # Configure POSTGRES_PASSWORD in Dokploy Environment Variables
+      POSTGRES_DB: puresa_crm
+    volumes:
+      - puresa_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d puresa_crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+networks:
+  dokploy-network:
+    external: true
+  default:
+    driver: bridge
+
+volumes:
+  puresa_db_data:
+    driver: local

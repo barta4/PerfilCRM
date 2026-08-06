@@ -1,0 +1,59 @@
+{
+  "nav": {
+    "dashboard": "Painel",
+    "clients": "Clientes e Terceiros",
+    "suppliers": "Fornecedores",
+    "quotations": "Cotações e Pedidos",
+    "inventory": "Estoque e Inventário",
+    "visits": "Visitas e Comunicação",
+    "tasks": "Tarefas",
+    "events": "Agenda",
+    "reports": "Relatórios",
+    "modules": "Módulos",
+    "custom_fields": "Campos Extras",
+    "automation": "Agente IA",
+    "operations": "Operações",
+    "comercial": "Comercial",
+    "admin": "Administração",
+    "accounting": "Contabilidade Uruguai"
+  },
+  "accounting": {
+    "title": "Contabilidade Uruguai (DGI)",
+    "desc": "Plano de contas oficial do Uruguai, partidas dobradas, e-Factura/DGI, IVA (22%, 10%, Isento), Livro Razão e Balancete de Verificação."
+  },
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "search": "Buscar...",
+    "status": "Status",
+    "actions": "Ações",
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "loading": "Carregando...",
+    "none": "Nenhum",
+    "all": "Todos"
+  },
+  "suppliers": {
+    "title": "Gestão de Fornecedores",
+    "subtitle": "Diretório unificado de terceiros estilo Dolibarr. Habilite cliente e fornecedor em um único registro com RUT (Uruguai).",
+    "new_supplier": "Novo Fornecedor",
+    "edit_supplier": "Editar Fornecedor",
+    "rut_label": "RUT / CNPJ (Uruguai - 12 dígitos)",
+    "business_name": "Razão Social / Nome",
+    "code": "Código Interno",
+    "category": "Categoria",
+    "payment_terms": "Condições de Pagamento",
+    "score": "Avaliação / Score",
+    "address": "Endereço Fiscal",
+    "roles": "Funções do Terceiro",
+    "is_client": "É Cliente",
+    "is_supplier": "É Fornecedor"
+  },
+  "clients": {
+    "title": "Clientes e Terceiros",
+    "new_client": "Novo Cliente / Terceiro",
+    "edit_client": "Editar Cliente / Terceiro"
+  }
+}

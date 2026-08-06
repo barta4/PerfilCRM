@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+:root {
+  --primary-color: #FFBE00;       /* Amarillo / Dorado Perfilgranos */
+  --secondary-color: #98D500;     /* Verde Perfilgranos */
+  --neutral-color: #748080;       /* Gris Perfilgranos */
+  --bg-main: #FFFFFF;             /* Fondo blanco limpio */
+  --bg-sidebar: #2D2D2D;          /* Sidebar oscuro para contraste elegante */
+  --text-main: #2D2D2D;           /* Gris oscuro legibilidad */
+  --text-muted: #748080;
+  --border-color: #e2e8f0;
+  --radius-crm: 8px;
+}
+
+@theme {
+  --color-pureza-blue: #FFBE00;
+  --color-pureza-pink: #98D500;
+  --color-pureza-accent: #748080;
+  
+  --color-perfil-gold: #FFBE00;
+  --color-perfil-green: #98D500;
+  --color-perfil-gray: #748080;
+
+  --radius-none: var(--radius-crm);
+  --radius-sm: var(--radius-crm);
+  --radius-md: var(--radius-crm);
+  --radius-lg: var(--radius-crm);
+  --radius-xl: var(--radius-crm);
+  --radius-2xl: var(--radius-crm);
+  --radius-3xl: var(--radius-crm);
+  
+  --font-sans: 'Inter', 'Segoe UI', sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+}
+
+.google-places-container {
+  position: relative;
+  z-index: 9999;
+}
+
+.google-select__menu {
+  z-index: 9999 !important;
+}
+
+.crm-sidebar {
+  background-color: var(--bg-sidebar) !important;
+  color: #ffffff !important;
+}
+
+.btn-primary, .action-trigger {
+  background-color: #FFBE00 !important;
+  border-color: #FFBE00 !important;
+  color: #2D2D2D !important;
+  font-weight: 700;
+  border-radius: var(--radius-crm);
+}
+
+.btn-primary:hover {
+  background-color: #e0a700 !important;
+}
+
+.crm-header {
+  border-bottom: 1px solid var(--border-color);
+  background-color: #ffffff;
+}

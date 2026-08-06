@@ -1,0 +1,59 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "clients": "Clients & Third Parties",
+    "suppliers": "Suppliers",
+    "quotations": "Quotations & Orders",
+    "inventory": "Stock & Inventory",
+    "visits": "Visits & Comms",
+    "tasks": "Tasks",
+    "events": "Schedule",
+    "reports": "Reports & Analytics",
+    "modules": "Modules",
+    "custom_fields": "Custom Fields",
+    "automation": "AI Agent",
+    "operations": "Operations",
+    "comercial": "Sales",
+    "admin": "Administration",
+    "accounting": "Uruguay Accounting"
+  },
+  "accounting": {
+    "title": "Uruguay Accounting (DGI)",
+    "desc": "Official Uruguayan chart of accounts, double-entry journal entries, e-Factura/DGI tax assistant, VAT (22%, 10%, Exempt), General Ledger and Trial Balance."
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search...",
+    "status": "Status",
+    "actions": "Actions",
+    "active": "Active",
+    "inactive": "Inactive",
+    "loading": "Loading...",
+    "none": "None",
+    "all": "All"
+  },
+  "suppliers": {
+    "title": "Supplier Management",
+    "subtitle": "Unified Dolibarr-style third party directory. Enable client and supplier roles in a single record with Uruguay RUT.",
+    "new_supplier": "New Supplier",
+    "edit_supplier": "Edit Supplier",
+    "rut_label": "Tax ID / RUT (Uruguay - 12 digits)",
+    "business_name": "Company Name",
+    "code": "Internal Code",
+    "category": "Category",
+    "payment_terms": "Payment Terms",
+    "score": "Score / Rating",
+    "address": "Fiscal Address",
+    "roles": "Third Party Roles",
+    "is_client": "Is Client",
+    "is_supplier": "Is Supplier"
+  },
+  "clients": {
+    "title": "Clients & Third Parties",
+    "new_client": "New Client / Third Party",
+    "edit_client": "Edit Client / Third Party"
+  }
+}

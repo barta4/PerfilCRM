@@ -1,0 +1,59 @@
+{
+  "nav": {
+    "dashboard": "Tablero",
+    "clients": "Clientes y Terceros",
+    "suppliers": "Proveedores",
+    "quotations": "Cotizaciones",
+    "inventory": "Inventario",
+    "visits": "Visitas y Comunicaciones",
+    "tasks": "Tareas",
+    "events": "Agenda",
+    "reports": "Reportes",
+    "modules": "Módulos",
+    "custom_fields": "Campos Extra",
+    "automation": "Agente IA",
+    "operations": "Operaciones",
+    "comercial": "Comercial",
+    "admin": "Administración",
+    "accounting": "Contabilidad Uruguay"
+  },
+  "accounting": {
+    "title": "Contabilidad Uruguay (DGI)",
+    "desc": "Plan de cuentas oficial de Uruguay, asientos contables con partida doble, facturación electrónica e-Factura/DGI, IVA (22%, 10%, Exento), Libro Mayor y Balance de Comprobación."
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar...",
+    "status": "Estado",
+    "actions": "Acciones",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "loading": "Cargando...",
+    "none": "Ninguno",
+    "all": "Todas"
+  },
+  "suppliers": {
+    "title": "Gestión de Proveedores",
+    "subtitle": "Ficha unificada de terceros estilo Dolibarr. Habilita clientes y proveedores en un solo registro con RUT (Uruguay).",
+    "new_supplier": "Nuevo Proveedor",
+    "edit_supplier": "Editar Proveedor",
+    "rut_label": "RUT (Uruguay - 12 dígitos)",
+    "business_name": "Razón Social / Nombre",
+    "code": "Código Interno",
+    "category": "Categoría",
+    "payment_terms": "Condición de Pago",
+    "score": "Score / Calificación",
+    "address": "Dirección Fiscal",
+    "roles": "Roles del Tercero",
+    "is_client": "Es Cliente",
+    "is_supplier": "Es Proveedor"
+  },
+  "clients": {
+    "title": "Clientes y Terceros",
+    "new_client": "Nuevo Cliente / Tercero",
+    "edit_client": "Editar Cliente / Tercero"
+  }
+}
