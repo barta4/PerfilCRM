@@ -5,7 +5,7 @@ import { useModuleStore, ModuleRecord } from '@/store/moduleStore';
 import { PageHeader } from '@/components/ui/PageHeader';
 import {
   Boxes, Shield, CheckCircle2, XCircle, Search, AlertCircle,
-  Users, MapPin, FileText, ClipboardList, Calendar, Package, ShieldCheck, Mail, Bot, BarChart3, Building2, Calculator
+  Users, MapPin, FileText, ClipboardList, Calendar, Package, ShieldCheck, Mail, Bot, BarChart3, Building2, Calculator, CalendarCheck
 } from 'lucide-react';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -30,6 +30,7 @@ const ICON_MAP: Record<string, any> = {
   ai_automation: Bot,
   reports_bi: BarChart3,
   accounting_uruguay: Calculator,
+  google_calendar: CalendarCheck,
 };
 
 export default function AdminModulesPage() {

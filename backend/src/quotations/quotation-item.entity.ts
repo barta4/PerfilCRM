@@ -30,6 +30,9 @@ export class QuotationItem {
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   unitPrice: number;
 
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  deliveredQuantity: number;
+
   @Column({ type: 'decimal', precision: 14, scale: 2, default: 0 })
   subtotal: number;
 

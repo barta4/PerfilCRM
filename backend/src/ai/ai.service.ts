@@ -126,8 +126,8 @@ export class AiService {
         model: 'gemini-3.1-flash-lite',
       });
       const prompt = `
-        Eres un asistente experto en servicios de limpieza industrial y comercial (PurezaCRM) y CRM comercial.
-        Tu objetivo es analizar los datos de los clientes y dar 3 recomendaciones accionables para un ejecutivo de ventas/operaciones.
+        Eres un asistente experto en CRM comercial y gestión de cuentas corporativas (PerfilCRM).
+        Tu objetivo es analizar los datos de los clientes y dar 3 recomendaciones accionables para un ejecutivo comercial.
         
         CONTEXTO:
         ${JSON.stringify(context)}
@@ -135,7 +135,7 @@ export class AiService {
         REGLAS:
         - Sé breve y directo.
         - Prioriza clientes en estado 'Red' o 'Yellow'.
-        - Sugiere programar visitas o tareas de control de calidad si ha pasado mucho tiempo.
+        - Sugiere programar visitas, llamadas de seguimiento o revisiones comerciales si ha pasado mucho tiempo.
         - Responde en formato JSON: { recommendations: [ { title: string, description: string, priority: 'high'|'medium'|'low', action: string } ] }
       `;
 
@@ -159,25 +159,25 @@ export class AiService {
     return {
       recommendations: [
         {
-          title: 'Caída de precios en Soja',
+          title: 'Seguimiento de cotización pendiente',
           description:
-            'El precio de referencia de la Soja ha caído. Es un buen momento para contactar a los productores indecisos para fijar precio o negociar primas.',
+            'Hay cotizaciones pendientes de confirmación enviadas hace más de 5 días. Se sugiere contactar al cliente para coordinar el cierre.',
           priority: 'high',
-          action: 'Llamar Productores',
+          action: 'Contactar Cliente',
         },
         {
-          title: 'Renovación de cupos de acopio',
+          title: 'Optimización de agenda comercial',
           description:
-            'Los cupos de acopio en planta se están agotando rápidamente para la próxima semana. Sugiere a tus clientes adelantar entregas.',
+            'Hay visitas comerciales y reuniones programadas para esta semana. Verifica la disponibilidad de los contactos clave.',
           priority: 'medium',
-          action: 'Enviar Campaña',
+          action: 'Revisar Agenda',
         },
         {
-          title: 'Oportunidad: Maíz Tardío',
+          title: 'Mantenimiento proactivo de cartera',
           description:
-            'Se reportan buenas condiciones de cosecha para el Maíz Tardío. Verifica con "Estancia La Paz" si requieren transporte logístico adicional.',
+            'Clientes en estado Green con más de 15 días sin interacción registrada. Sugerimos llamada de cortesía o control de satisfacción.',
           priority: 'low',
-          action: 'Agendar Visita',
+          action: 'Agendar Llamada',
         },
       ],
     };

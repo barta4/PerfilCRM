@@ -8,6 +8,8 @@ import { AuthController, UsersController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { NotificationsModule } from '../notifications/notifications.module';
 
+import { RolesGuard } from './roles.guard';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
@@ -26,7 +28,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     }),
   ],
   controllers: [AuthController, UsersController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, TypeOrmModule],
+  providers: [AuthService, JwtStrategy, RolesGuard],
+  exports: [AuthService, RolesGuard, TypeOrmModule],
 })
 export class AuthModule {}

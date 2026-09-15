@@ -8,7 +8,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
-import { Users, ClipboardList, MessageSquare, Calendar, AlertCircle, FileText } from 'lucide-react';
+import { Users, ClipboardList, MessageSquare, Calendar, AlertCircle, FileText, Building2 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, PieChart, Pie, Cell
@@ -16,6 +16,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AiInsightsTile } from '@/components/ui/AiInsightsTile';
+import { useModuleStore } from '@/store/moduleStore';
 
 const STATUS_COLORS: Record<string, string> = {
   Green:  '#98D500',
@@ -25,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function DashboardModule() {
+  const { isModuleEnabled } = useModuleStore();
   const { data: clients = [] }     = useQuery<Client[]>({ queryKey: ['clients'],     queryFn: () => api.get('/clients').then(r => r.data) });
   const { data: tasks = [] }       = useQuery<Task[]>({ queryKey: ['tasks'],         queryFn: () => api.get('/tasks').then(r => r.data) });
   const { data: events = [] }      = useQuery<Event[]>({ queryKey: ['events'],       queryFn: () => api.get('/events').then(r => r.data) });
@@ -57,8 +59,8 @@ export function DashboardModule() {
 
   return (
     <div className="space-y-6">
-      {/* AI Row */}
-      <AiInsightsTile />
+      {/* AI Row - Only rendered when AI automation module is enabled */}
+      {isModuleEnabled('ai_automation') && <AiInsightsTile />}
 
       {/* KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -222,7 +224,10 @@ export function DashboardModule() {
                 <div className="w-2 h-2 bg-amber-500 rounded-full shrink-0 mt-1.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-gray-900 truncate">{task.title}</p>
-                  <p className="text-xs text-gray-400">{task.client?.businessName || 'General'}</p>
+                  <p className="text-xs text-amber-800 font-medium flex items-center gap-1 mt-0.5 truncate">
+                    <Building2 className="w-3 h-3 text-amber-600 shrink-0" />
+                    <span className="truncate">{task.client?.businessName || 'Sin cliente'}</span>
+                  </p>
                 </div>
                 {task.dueDate && (
                   <span className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">

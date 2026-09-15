@@ -15,6 +15,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ModulesGuard } from '../auth/modules.guard';
 import { RequireModule } from '../auth/require-module.decorator';
 
+import { CreateContactDto } from './dto/create-contact.dto';
+import { UpdateContactDto } from './dto/update-contact.dto';
+
 @Controller('contacts')
 @RequireModule('clients')
 @UseGuards(JwtAuthGuard, ModulesGuard)
@@ -40,12 +43,12 @@ export class ContactsController {
   }
 
   @Post()
-  create(@Body() data: Partial<Contact>) {
+  create(@Body() data: CreateContactDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() data: Partial<Contact>) {
+  update(@Param('id') id: string, @Body() data: UpdateContactDto) {
     return this.service.update(+id, data);
   }
 

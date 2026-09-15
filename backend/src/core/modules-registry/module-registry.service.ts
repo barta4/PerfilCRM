@@ -5,6 +5,8 @@ import { ModuleRegistry } from './module-registry.entity';
 import { ModuleManifest } from './interfaces/module-manifest.interface';
 import { SuppliersManifest } from '../../modules/suppliers/suppliers.manifest';
 import { AccountingManifest } from '../../modules/accounting/accounting.manifest';
+import { GoogleCalendarManifest } from '../../modules/google-calendar/google-calendar.manifest';
+import { PdfTemplatesManifest } from '../../modules/pdf-templates/pdf-templates.manifest';
 
 @Injectable()
 export class ModuleRegistryService implements OnModuleInit {
@@ -140,8 +142,8 @@ export class ModuleRegistryService implements OnModuleInit {
       },
       {
         id: 'ai_automation',
-        name: 'Agente IA de Reglas',
-        description: 'Motor de automatizaciones disparo-acción e inteligencia de procesos.',
+        name: 'Agente IA & Recomendaciones',
+        description: 'Sugerencias predictivas en Dashboard, Chatbot comercial y automatizaciones de reglas.',
         version: '1.0.0',
         author: 'PerfilCRM Core',
         category: 'analytics',
@@ -149,6 +151,15 @@ export class ModuleRegistryService implements OnModuleInit {
         permissions: [{ id: 'ai:admin', name: 'Administrar Agente IA' }],
         navigation: [
           { label: 'Agente IA & Reglas', href: '/admin/automation', icon: 'Bot', group: 'admin' },
+        ],
+        widgets: [
+          {
+            id: 'ai_recommendations_tile',
+            title: 'Recomendaciones IA Comercial',
+            description: 'Sugerencias predictivas y acciones recomendadas del Agente IA en el Dashboard.',
+            componentKey: 'AiInsightsTile',
+            defaultSize: 'large',
+          },
         ],
       },
       {
@@ -166,6 +177,8 @@ export class ModuleRegistryService implements OnModuleInit {
       },
       SuppliersManifest,
       AccountingManifest,
+      GoogleCalendarManifest,
+      PdfTemplatesManifest,
     ];
 
     for (const manifest of standardManifests) {

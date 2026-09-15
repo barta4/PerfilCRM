@@ -19,6 +19,13 @@ import { SettingsModule } from './settings/settings.module';
 import { QuotationsModule } from './quotations/quotations.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
+import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
+import { PdfTemplatesModule } from './modules/pdf-templates/pdf-templates.module';
+
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { InspectionsModule } from './inspections/inspections.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { StaffModule } from './staff/staff.module';
 
 import { ModuleRegistryModule } from './core/modules-registry/module-registry.module';
 import { CustomFieldsModule } from './core/custom-fields/custom-fields.module';
@@ -43,7 +50,7 @@ import { APP_GUARD } from '@nestjs/core';
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: true, // Auto-create tables for Perfilgranos CRM
+        synchronize: configService.get<string>('TYPEORM_SYNCHRONIZE') !== 'false', // Auto-create/sync tables for Perfilgranos CRM
       }),
       inject: [ConfigService],
     }),
@@ -54,6 +61,7 @@ import { APP_GUARD } from '@nestjs/core';
     AuthModule,
     ClientsModule,
     ContactsModule,
+    CampaignsModule,
     EventsModule,
     VisitsModule,
     TasksModule,
@@ -65,6 +73,11 @@ import { APP_GUARD } from '@nestjs/core';
     QuotationsModule,
     SuppliersModule,
     AccountingModule,
+    GoogleCalendarModule,
+    PdfTemplatesModule,
+    InspectionsModule,
+    InventoryModule,
+    StaffModule,
   ],
   controllers: [AppController],
   providers: [

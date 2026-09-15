@@ -7,4 +7,6 @@ dist-ssr
 *.log
 .DS_Store
 coverage
-build
+uploads
+backend/uploads
+frontend/.next

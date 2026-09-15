@@ -38,12 +38,24 @@ async function bootstrap() {
   );
 
   // CORS — dynamic origins configuration
-  const corsOrigins = process.env.CORS_ORIGINS
+  const configuredOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
     : ['http://localhost:3000', 'http://127.0.0.1:3000'];
 
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin: any, callback: any) => {
+      if (!origin) return callback(null, true);
+      if (
+        configuredOrigins.includes('*') ||
+        configuredOrigins.includes(origin) ||
+        origin.includes('duckdns.org') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   });
 
@@ -54,8 +66,8 @@ async function bootstrap() {
   mkdirSync(join(process.cwd(), 'uploads'), { recursive: true });
 
   const port = process.env.PORT ?? 3001;
-  await app.listen(port);
-  console.log(`[PERFIL CRM] Backend running on http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`[PERFIL CRM] Backend running on http://0.0.0.0:${port}`);
 
   // Seed default admin user
   const { AuthService } = require('./auth/auth.service');

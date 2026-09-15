@@ -4,10 +4,13 @@ import { Quotation } from './quotation.entity';
 import { QuotationsService } from './quotations.service';
 import { QuotationsController } from './quotations.controller';
 import { QuotationItem } from './quotation-item.entity';
+import { QuotationDelivery } from './quotation-delivery.entity';
+import { PdfTemplatesModule } from '../modules/pdf-templates/pdf-templates.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Quotation, QuotationItem]),
+    TypeOrmModule.forFeature([Quotation, QuotationItem, QuotationDelivery]),
+    PdfTemplatesModule,
   ],
   providers: [QuotationsService],
   controllers: [QuotationsController],

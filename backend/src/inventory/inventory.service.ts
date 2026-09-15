@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { InventoryItem } from './entities/inventory-item.entity';
 import { ClientStock } from './entities/client-stock.entity';
 
@@ -15,6 +15,7 @@ export class InventoryService {
     private readonly itemRepo: Repository<InventoryItem>,
     @InjectRepository(ClientStock)
     private readonly clientStockRepo: Repository<ClientStock>,
+    private readonly dataSource: DataSource,
   ) {}
 
   findAllItems() {
@@ -51,34 +52,40 @@ export class InventoryService {
     quantity: number,
     minThreshold = 0,
   ) {
-    const item = await this.itemRepo.findOne({ where: { id: itemId } });
-    if (!item) throw new NotFoundException('Insumo no encontrado');
-    if (Number(item.stockQuantity) < quantity) {
-      throw new BadRequestException('Stock insuficiente en depósito central');
+    if (!quantity || quantity <= 0) {
+      throw new BadRequestException('La cantidad a transferir debe ser mayor a cero.');
     }
 
-    item.stockQuantity = Number(item.stockQuantity) - quantity;
-    await this.itemRepo.save(item);
-
-    let clientStock = await this.clientStockRepo.findOne({
-      where: { client: { id: clientId }, item: { id: itemId } },
-    });
-
-    if (clientStock) {
-      clientStock.quantity = Number(clientStock.quantity) + quantity;
-      if (minThreshold > 0) {
-        clientStock.minThreshold = minThreshold;
+    return this.dataSource.transaction(async (manager) => {
+      const item = await manager.findOne(InventoryItem, { where: { id: itemId } });
+      if (!item) throw new NotFoundException('Insumo no encontrado');
+      if (Number(item.stockQuantity) < quantity) {
+        throw new BadRequestException('Stock insuficiente en depósito central');
       }
-    } else {
-      clientStock = this.clientStockRepo.create({
-        client: { id: clientId },
-        item: { id: itemId },
-        quantity,
-        minThreshold,
-      });
-    }
 
-    return this.clientStockRepo.save(clientStock);
+      item.stockQuantity = Number(item.stockQuantity) - quantity;
+      await manager.save(InventoryItem, item);
+
+      let clientStock = await manager.findOne(ClientStock, {
+        where: { client: { id: clientId }, item: { id: itemId } },
+      });
+
+      if (clientStock) {
+        clientStock.quantity = Number(clientStock.quantity) + quantity;
+        if (minThreshold > 0) {
+          clientStock.minThreshold = minThreshold;
+        }
+      } else {
+        clientStock = manager.create(ClientStock, {
+          client: { id: clientId } as any,
+          item: { id: itemId } as any,
+          quantity,
+          minThreshold,
+        });
+      }
+
+      return manager.save(ClientStock, clientStock);
+    });
   }
 
   async updateClientStockQuantity(id: number, quantity: number) {

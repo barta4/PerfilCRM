@@ -10,8 +10,8 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   turbopack: {},
   async rewrites() {
-    // In Docker, Next.js server-side rewrites must target http://backend:3001 (container service name)
-    const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    // In Docker, Next.js server-side rewrites must target http://perfil-backend:3001 (container service name)
+    const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://perfil-backend:3001";
     return [
       {
         source: "/api/:path*",

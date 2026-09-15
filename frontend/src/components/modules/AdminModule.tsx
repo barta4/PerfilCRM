@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input, Select } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Users, Plus, Edit2, Shield, Activity, Server, CheckCircle, XCircle, Mail, Save, Calculator, Trash2, Settings, Bot } from 'lucide-react';
+import { Users, Plus, Edit2, Shield, Activity, Server, CheckCircle, XCircle, Mail, Save, Calculator, Trash2, Settings, Bot, CalendarCheck, FileCode } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface User {
@@ -126,6 +126,79 @@ function EmailConfigForm() {
         </div>
         <Button icon={<Save className="w-4 h-4" />} onClick={save} loading={loading}>
           Guardar cambios
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function GoogleCalendarConfigForm() {
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    clientId: '',
+    clientSecret: '',
+    redirectUri: 'http://localhost:3000/events?gcal=callback',
+  });
+
+  useQuery({
+    queryKey: ['settings', 'google_calendar_config'],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/google-calendar/config');
+        if (res.data) setForm(res.data);
+        return res.data;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  const save = async () => {
+    setLoading(true);
+    try {
+      await api.post('/google-calendar/config', form);
+      toast.success('Configuración de Google Calendar guardada con éxito');
+    } catch (err: any) {
+      toast.error('Error al guardar: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+        <h4 className="font-bold text-emerald-900 text-xs uppercase tracking-wider mb-1">
+          Sincronización con Google Cloud Console (OAuth 2.0)
+        </h4>
+        <p className="text-xs text-emerald-800 leading-relaxed">
+          Permite a los ejecutivos sincronizar reuniones, autogenerar links de Google Meet y bloquear recordatorios de tareas en su calendario de Google.
+        </p>
+      </div>
+
+      <Input
+        label="Google Client ID *"
+        value={form.clientId}
+        onChange={e => setForm({ ...form, clientId: e.target.value })}
+        placeholder="ej: 123456789-abcdef.apps.googleusercontent.com"
+      />
+      <Input
+        label="Google Client Secret *"
+        type="password"
+        value={form.clientSecret}
+        onChange={e => setForm({ ...form, clientSecret: e.target.value })}
+        placeholder="••••••••••••••••"
+      />
+      <Input
+        label="URI de Redirección Autorizada (OAuth Redirect URI)"
+        value={form.redirectUri}
+        onChange={e => setForm({ ...form, redirectUri: e.target.value })}
+        placeholder="http://localhost:3000/events?gcal=callback"
+      />
+
+      <div className="pt-3 border-t border-gray-100 flex justify-end">
+        <Button icon={<Save className="w-4 h-4" />} onClick={save} loading={loading}>
+          Guardar credenciales de Google
         </Button>
       </div>
     </div>
@@ -701,15 +774,20 @@ function UserForm({ initial, onSave, onCancel, loading }: {
 
   const ALL_MODULES = [
     { id: 'dashboard', label: 'Inicio / Dashboard' },
-    { id: 'clients', label: 'Clientes' },
+    { id: 'clients', label: 'Clientes y Terceros' },
     { id: 'quotations', label: 'Cotizaciones / Órdenes' },
-    { id: 'events', label: 'Agenda' },
+    { id: 'pdf_templates', label: 'Plantillas PDF' },
+    { id: 'events', label: 'Agenda y Calendario' },
     { id: 'visits', label: 'Visitas y Comunicaciones' },
     { id: 'tasks', label: 'Tareas' },
-    { id: 'reports', label: 'Reportes' },
-    { id: 'campaigns', label: 'Campañas' },
     { id: 'inventory', label: 'Inventario' },
-    { id: 'staff', label: 'Personal' },
+    { id: 'suppliers', label: 'Proveedores' },
+    { id: 'accounting', label: 'Contabilidad Uruguay' },
+    { id: 'inspections', label: 'Inspecciones' },
+    { id: 'campaigns', label: 'Campañas de Correo' },
+    { id: 'reports', label: 'Reportes y Analítica' },
+    { id: 'ai', label: 'Agente IA & Recomendaciones' },
+    { id: 'staff', label: 'Personal / Equipo' },
   ];
 
   const handleModuleToggle = (moduleId: string) => {
@@ -833,12 +911,12 @@ function UserForm({ initial, onSave, onCancel, loading }: {
 }
 
 interface AdminModuleProps {
-  initialTab?: 'users' | 'system' | 'email' | 'quotations' | 'automation';
+  initialTab?: 'users' | 'system' | 'gcalendar' | 'email' | 'quotations' | 'automation';
 }
 
 export function AdminModule({ initialTab = 'users' }: AdminModuleProps) {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'users' | 'system' | 'email' | 'quotations' | 'automation'>(initialTab);
+  const [tab, setTab] = useState<'users' | 'system' | 'gcalendar' | 'email' | 'quotations' | 'automation'>(initialTab);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<User | null>(null);
   const [navieraStatus, setNavieraStatus] = useState<any>(null);
@@ -882,6 +960,7 @@ export function AdminModule({ initialTab = 'users' }: AdminModuleProps) {
   const tabs = [
     { id: 'users', label: 'Usuarios', icon: <Users className="w-4 h-4" /> },
     { id: 'system', label: 'Sistema', icon: <Server className="w-4 h-4" /> },
+    { id: 'gcalendar', label: 'Google Calendar', icon: <CalendarCheck className="w-4 h-4" /> },
     { id: 'email', label: 'Correo', icon: <Mail className="w-4 h-4" /> },
     { id: 'quotations', label: 'Cotizador', icon: <Calculator className="w-4 h-4" /> },
     { id: 'automation', label: 'Agente IA & Reglas', icon: <Bot className="w-4 h-4" /> },
@@ -1031,6 +1110,22 @@ export function AdminModule({ initialTab = 'users' }: AdminModuleProps) {
         </div>
       )}
 
+      {/* Google Calendar configuration tab */}
+      {tab === 'gcalendar' && (
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4 text-emerald-600" /> Integración Google Calendar (OAuth 2.0)
+              </h3>
+            </CardHeader>
+            <CardBody>
+              <GoogleCalendarConfigForm />
+            </CardBody>
+          </Card>
+        </div>
+      )}
+
       {/* Email configuration tab */}
       {tab === 'email' && (
         <div className="max-w-2xl mx-auto">
@@ -1049,7 +1144,31 @@ export function AdminModule({ initialTab = 'users' }: AdminModuleProps) {
 
       {/* Quotation configuration tab */}
       {tab === 'quotations' && (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <FileCode className="w-4 h-4 text-amber-500" /> Plantillas PDF de Cotización & Órdenes
+              </h3>
+            </CardHeader>
+            <CardBody>
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-bold text-amber-900 text-sm">Gestor de Plantillas PDF Dinámicas</h4>
+                  <p className="text-xs text-amber-800 mt-1">
+                    Crea y personaliza formatos PDF con membretes, paletas cromáticas, tablas de remitos y cláusulas adaptadas a diferentes clientes.
+                  </p>
+                </div>
+                <Link
+                  href="/admin/pdf-templates"
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg whitespace-nowrap shadow-sm transition-colors flex items-center gap-1.5"
+                >
+                  <FileCode className="w-3.5 h-3.5" /> Administrar Plantillas →
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
+
           <Card>
             <CardHeader>
               <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">

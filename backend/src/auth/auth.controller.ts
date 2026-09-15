@@ -14,6 +14,8 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { Roles } from './roles.decorator';
 import { UserRole } from './user.entity';
 
+import { RolesGuard } from './roles.guard';
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -40,18 +42,18 @@ export class AuthController {
   }
 }
 
-// Users CRUD (admin only, but guarded only in prod)
+// Users CRUD (Admin only)
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class UsersController {
   constructor(private authService: AuthService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Get()
   findAll() {
     return this.authService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post()
   create(
     @Body()
@@ -60,6 +62,8 @@ export class UsersController {
       email: string;
       password: string;
       role?: UserRole;
+      allowedModules?: string[] | null;
+      imageUrl?: string;
     },
   ) {
     return this.authService.register(
@@ -67,16 +71,16 @@ export class UsersController {
       body.email,
       body.password,
       body.role,
+      body.allowedModules,
+      body.imageUrl,
     );
   }
 
-  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(@Param('id') id: string, @Body() body: any) {
     return this.authService.update(+id, body);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     await this.authService.remove(+id);

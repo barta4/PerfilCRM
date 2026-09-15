@@ -11,6 +11,11 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d perfilgranos_crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -22,13 +27,15 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/perfilgranos_crm
-      JWT_SECRET: perfilgranos_crm_production_secret_key_2026
+      JWT_SECRET: ${JWT_SECRET:-perfilgranos_crm_production_secret_key_2026}
       NODE_ENV: production
+      PORT: 3001
       CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
     volumes:
       - ./backend/uploads:/app/uploads
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build:

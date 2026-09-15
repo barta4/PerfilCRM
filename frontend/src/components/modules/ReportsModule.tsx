@@ -6,13 +6,14 @@ import { api } from '@/lib/api';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Download, BarChart3, PieChart as PieIcon, Users, CheckSquare, MapPin } from 'lucide-react';
+import toast from 'react-hot-toast';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell
 } from 'recharts';
 
-const STATUS_COLORS_TASK = ['#94a3b8', '#003B5C', '#10b981', '#f43f5e'];
-const STATUS_COLORS_CLIENT = ['#10b981', '#f59e0b', '#f43f5e', '#94a3b8'];
+const STATUS_COLORS_TASK = ['#94a3b8', '#FFBE00', '#10b981', '#f43f5e'];
+const STATUS_COLORS_CLIENT = ['#10b981', '#FFBE00', '#f43f5e', '#94a3b8'];
 
 export function ReportsModule() {
   const { data: summary } = useQuery({
@@ -28,12 +29,21 @@ export function ReportsModule() {
     queryFn: () => api.get('/reports/clients-by-status').then(r => r.data),
   });
 
-  const downloadExcel = (endpoint: string, filename: string) => {
-    const url = `/api${endpoint}`;
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
+  const downloadExcel = async (endpoint: string, filename: string) => {
+    try {
+      const res = await api.get(endpoint, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Archivo descargado');
+    } catch {
+      toast.error('Error al descargar archivo');
+    }
   };
 
   return (
@@ -42,7 +52,7 @@ export function ReportsModule() {
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { label: 'Total clientes', value: summary.totalClients, sub: `${summary.activeClients} activos`, icon: <Users className="w-5 h-5" />, color: 'bg-pureza-blue/10 text-pureza-blue' },
+            { label: 'Total clientes', value: summary.totalClients, sub: `${summary.activeClients} activos`, icon: <Users className="w-5 h-5" />, color: 'bg-[#FFBE00]/10 text-amber-600' },
             { label: 'Total tareas', value: summary.totalTasks, sub: `${summary.pendingTasks} pendientes`, icon: <CheckSquare className="w-5 h-5" />, color: 'bg-rose-50 text-rose-500' },
             { label: 'Total visitas', value: summary.totalVisits, sub: 'registradas', icon: <MapPin className="w-5 h-5" />, color: 'bg-emerald-50 text-emerald-600' },
           ].map(item => (
@@ -63,10 +73,10 @@ export function ReportsModule() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-pureza-blue" /> Tareas por estado
+                <BarChart3 className="w-4 h-4 text-amber-500" /> Tareas por estado
               </h3>
               <Button variant="ghost" size="sm" icon={<Download className="w-3.5 h-3.5" />}
-                onClick={() => downloadExcel('/reports/export/tasks.xlsx', 'tareas_pureza.xlsx')}>
+                onClick={() => downloadExcel('/reports/export/tasks.xlsx', 'tareas_perfilgranos.xlsx')}>
                 Excel
               </Button>
             </div>
@@ -91,10 +101,10 @@ export function ReportsModule() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                <PieIcon className="w-4 h-4 text-pureza-pink" /> Cartera por estado
+                <PieIcon className="w-4 h-4 text-emerald-500" /> Cartera por estado
               </h3>
               <Button variant="ghost" size="sm" icon={<Download className="w-3.5 h-3.5" />}
-                onClick={() => downloadExcel('/reports/export/clients.xlsx', 'clientes_pureza.xlsx')}>
+                onClick={() => downloadExcel('/reports/export/clients.xlsx', 'clientes_perfilgranos.xlsx')}>
                 Excel
               </Button>
             </div>

@@ -7,6 +7,7 @@ import {
   Delete,
   Put,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { Event } from './event.entity';
@@ -31,17 +32,17 @@ export class EventsController {
   }
 
   @Post()
-  create(@Body() data: Partial<Event>) {
-    return this.service.create(data);
+  create(@Body() data: Partial<Event>, @Request() req: any) {
+    return this.service.create(data, req?.user?.userId || req?.user?.id);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() data: Partial<Event>) {
-    return this.service.update(+id, data);
+  update(@Param('id') id: string, @Body() data: Partial<Event>, @Request() req: any) {
+    return this.service.update(+id, data, req?.user?.userId || req?.user?.id);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.service.remove(+id);
+  remove(@Param('id') id: string, @Request() req: any) {
+    return this.service.remove(+id, req?.user?.userId || req?.user?.id);
   }
 }

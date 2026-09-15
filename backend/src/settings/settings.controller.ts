@@ -25,8 +25,7 @@ export class SettingsController {
   }
 
   @Get()
-  @RequireModule('admin')
-  @UseGuards(JwtAuthGuard, ModulesGuard)
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.service.getAll();
   }

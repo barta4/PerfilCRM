@@ -34,7 +34,8 @@ export class AiController {
 
   @Get('recommendations')
   getRecommendations(@Request() req: any) {
-    return this.aiService.generateRecommendations(req.user.userId);
+    const userId = req.user?.id ?? req.user?.userId;
+    return this.aiService.generateRecommendations(userId);
   }
 
   @Get('analyze-contact/:id')

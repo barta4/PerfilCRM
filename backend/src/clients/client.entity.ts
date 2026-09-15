@@ -4,12 +4,17 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
 } from 'typeorm';
+import { PdfTemplate } from '../modules/pdf-templates/entities/pdf-template.entity';
 
 @Entity('clients')
 export class Client {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ManyToOne(() => PdfTemplate, { nullable: true, eager: true, onDelete: 'SET NULL' })
+  preferredPdfTemplate: PdfTemplate;
 
   @Column({ nullable: true })
   code: string;

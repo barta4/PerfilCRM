@@ -24,6 +24,8 @@ export class AuthService {
     email: string,
     password: string,
     role?: UserRole,
+    allowedModules?: string[] | null,
+    imageUrl?: string,
   ) {
     const hashed = await bcrypt.hash(password, 10);
     const user = this.userRepo.create({
@@ -31,14 +33,20 @@ export class AuthService {
       email,
       password: hashed,
       role: role || UserRole.SALES,
+      allowedModules: allowedModules !== undefined ? allowedModules : null,
+      imageUrl: imageUrl || null,
     });
     return this.userRepo.save(user);
   }
 
   async login(email: string, password: string) {
-    const user = await this.userRepo.findOne({
-      where: { email, isActive: true },
-    });
+    const user = await this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .andWhere('user.isActive = :isActive', { isActive: true })
+      .getOne();
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
@@ -118,12 +126,13 @@ export class AuthService {
     token: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    const user = await this.userRepo.findOne({
-      where: {
-        resetPasswordToken: token,
-        resetPasswordExpires: MoreThan(new Date()),
-      },
-    });
+    const user = await this.userRepo
+      .createQueryBuilder('user')
+      .addSelect('user.resetPasswordToken')
+      .addSelect('user.resetPasswordExpires')
+      .where('user.resetPasswordToken = :token', { token })
+      .andWhere('user.resetPasswordExpires > :now', { now: new Date() })
+      .getOne();
 
     if (!user) {
       throw new BadRequestException(
@@ -142,7 +151,20 @@ export class AuthService {
   }
 
   async findById(id: number): Promise<User | null> {
-    return this.userRepo.findOneBy({ id });
+    return this.userRepo.findOne({
+      where: { id: Number(id) },
+      select: [
+        'id',
+        'name',
+        'email',
+        'role',
+        'isActive',
+        'createdAt',
+        'allowedModules',
+        'imageUrl',
+        'googleCalendarSyncEnabled',
+      ],
+    });
   }
 
   async findAll(): Promise<User[]> {

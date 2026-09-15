@@ -3,16 +3,30 @@ import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './user.entity';
+import { EmailService } from '../notifications/email.service';
 
 describe('AuthService', () => {
   let service: AuthService;
 
+  const mockQueryBuilder = {
+    addSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(null),
+  };
+
   const mockUsersRepository = {
     findOne: jest.fn(),
+    findOneBy: jest.fn(),
+    createQueryBuilder: jest.fn(() => mockQueryBuilder),
   };
 
   const mockJwtService = {
     sign: jest.fn(() => 'mock_token'),
+  };
+
+  const mockEmailService = {
+    sendEmail: jest.fn().mockResolvedValue(true),
   };
 
   beforeEach(async () => {
@@ -27,6 +41,10 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: mockJwtService,
         },
+        {
+          provide: EmailService,
+          useValue: mockEmailService,
+        },
       ],
     }).compile();
 
@@ -38,7 +56,7 @@ describe('AuthService', () => {
   });
 
   it('should throw exception on invalid login', async () => {
-    mockUsersRepository.findOne.mockResolvedValue(null);
+    mockQueryBuilder.getOne.mockResolvedValueOnce(null);
     await expect(service.login('test@test.com', 'wrongpass')).rejects.toThrow(
       'Credenciales inválidas',
     );

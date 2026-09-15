@@ -47,7 +47,7 @@ export function AiInsightsTile() {
         </div>
         <div className="mt-4 md:mt-0">
           <h2 className="text-2xl font-black leading-tight mb-1 text-white">Recomendaciones del día</h2>
-          <p className="text-xs text-gray-400">Análisis inteligente de tu cartera de granos.</p>
+          <p className="text-xs text-gray-400">Análisis predictivo y sugerencias inteligentes de tu cartera comercial.</p>
         </div>
       </div>
 

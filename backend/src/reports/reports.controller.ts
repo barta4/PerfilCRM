@@ -29,7 +29,7 @@ export class ReportsController {
     ]);
 
     const activeClients = await this.clientRepo.count({
-      where: [{ status: 'Green' }, { status: 'Yellow' }],
+      where: { status: 'Activo' },
     });
     const pendingTasks = await this.taskRepo.count({
       where: [{ status: 'To Do' }, { status: 'In Progress' }],
@@ -58,7 +58,7 @@ export class ReportsController {
 
   @Get('clients-by-status')
   async clientsByStatus() {
-    const statuses = ['Green', 'Yellow', 'Red', 'Grey'];
+    const statuses = ['Activo', 'Inactivo', 'Potencial', 'Suspendido'];
     const data = await Promise.all(
       statuses.map(async (status) => ({
         status,

@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Plus, GripVertical, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, GripVertical, AlertCircle, Clock, CheckCircle, XCircle, CalendarCheck, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { useModuleStore } from '@/store/moduleStore';
 
 const COLUMNS: { id: Task['status']; label: string; icon: React.ReactNode; color: string }[] = [
   { id: 'To Do',       label: 'Por hacer',   icon: <Clock className="w-4 h-4" />,        color: 'border-t-gray-400' },
@@ -26,11 +27,12 @@ const priorityVariant = {
   Critical: 'danger',
 } as const;
 
-function TaskCard({ task, onEdit, onDelete, onStatusChange }: {
+function TaskCard({ task, onEdit, onDelete, onStatusChange, isGoogleCalendarEnabled }: {
   task: Task;
   onEdit: (t: Task) => void;
   onDelete: (id: number) => void;
   onStatusChange: (id: number, status: Task['status']) => void;
+  isGoogleCalendarEnabled?: boolean;
 }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group">
@@ -42,12 +44,33 @@ function TaskCard({ task, onEdit, onDelete, onStatusChange }: {
         </div>
       </div>
       <p className="text-sm font-semibold text-gray-900 mb-1 leading-snug">{task.title}</p>
-      {task.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{task.description}</p>}
+      {task.description && <p className="text-xs text-gray-500 mb-2 line-clamp-2">{task.description}</p>}
+      
+      {/* Cliente Asociado */}
+      {task.client ? (
+        <div className="flex items-center gap-1.5 text-xs text-amber-900 bg-amber-50/90 border border-amber-200/80 px-2.5 py-1 rounded-lg mb-3 font-semibold shadow-2xs">
+          <Building2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <span className="truncate">{task.client.businessName}</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded mb-3">
+          <Building2 className="w-3 h-3 text-gray-300 shrink-0" />
+          <span className="italic">Sin cliente asociado</span>
+        </div>
+      )}
+
       {task.dueDate && (
-        <p className="text-xs text-gray-400 flex items-center gap-1 mb-3">
-          <Clock className="w-3 h-3" />
-          {new Date(task.dueDate).toLocaleDateString('es-UY', { day: '2-digit', month: 'short' })}
-        </p>
+        <div className="flex items-center justify-between text-xs text-gray-400 mb-3">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {new Date(task.dueDate).toLocaleDateString('es-UY', { day: '2-digit', month: 'short' })}
+          </span>
+          {(task as any).googleEventId && isGoogleCalendarEnabled && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" title="Sincronizado con Google Calendar">
+              <CalendarCheck className="w-2.5 h-2.5" /> G-Cal
+            </span>
+          )}
+        </div>
       )}
       <Select
         options={COLUMNS.map(c => ({ value: c.id, label: c.label }))}
@@ -100,6 +123,8 @@ function TaskForm({ initial, clients, onSave, onCancel, loading }: {
 
 export function TasksModule() {
   const qc = useQueryClient();
+  const { isModuleEnabled } = useModuleStore();
+  const isGoogleCalendarEnabled = isModuleEnabled('google_calendar');
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Task | null>(null);
 
@@ -114,7 +139,7 @@ export function TasksModule() {
 
   const createMut = useMutation({
     mutationFn: (data: any) => api.post('/tasks', data).then(r => r.data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); setModalOpen(false); toast.success('Tarea creada'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); setModalOpen(false); toast.success('Tarea creada y sincronizada'); },
   });
   const updateMut = useMutation({
     mutationFn: ({ id, data }: any) => api.put(`/tasks/${id}`, data).then(r => r.data),
@@ -152,6 +177,7 @@ export function TasksModule() {
                 <TaskCard
                   key={task.id}
                   task={task}
+                  isGoogleCalendarEnabled={isGoogleCalendarEnabled}
                   onEdit={t => { setEditTarget(t); setModalOpen(true); }}
                   onDelete={id => deleteMut.mutate(id)}
                   onStatusChange={(id, status) => updateMut.mutate({ id, data: { status } })}

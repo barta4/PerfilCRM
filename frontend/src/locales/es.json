@@ -15,7 +15,8 @@
     "operations": "Operaciones",
     "comercial": "Comercial",
     "admin": "Administración",
-    "accounting": "Contabilidad Uruguay"
+    "accounting": "Contabilidad Uruguay",
+    "pdf_templates": "Plantillas PDF"
   },
   "accounting": {
     "title": "Contabilidad Uruguay (DGI)",
@@ -55,5 +56,21 @@
     "title": "Clientes y Terceros",
     "new_client": "Nuevo Cliente / Tercero",
     "edit_client": "Editar Cliente / Tercero"
+  },
+  "google_calendar": {
+    "connect": "Conectar con Google Calendar",
+    "connected": "Google Calendar Conectado",
+    "disconnect": "Desconectar",
+    "syncing": "Sincronizando...",
+    "open_calendar": "Ver en Google Calendar",
+    "join_meet": "Unirse con Google Meet",
+    "sync_task": "Sincronizado con Google Calendar",
+    "success_connected": "Google Calendar vinculado con éxito",
+    "success_disconnected": "Google Calendar desvinculado",
+    "config_title": "Integración Google Calendar (OAuth 2.0)",
+    "config_desc": "Configura las credenciales de Google Cloud Console para permitir la sincronización de agenda y tareas.",
+    "client_id": "Client ID de Google",
+    "client_secret": "Client Secret de Google",
+    "redirect_uri": "URI de Redirección Autorizada"
   }
 }

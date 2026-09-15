@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
   Res,
+  Query,
 } from '@nestjs/common';
 import { QuotationsService } from './quotations.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -36,9 +37,34 @@ export class QuotationsController {
     return this.service.create(data, req.user);
   }
 
+  @Put(':id')
+  update(@Param('id') id: string, @Body() data: any, @Req() req: any) {
+    return this.service.update(+id, data, req.user);
+  }
+
   @Put(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
     return this.service.updateStatus(+id, status);
+  }
+
+  @Put(':id/complete')
+  complete(@Param('id') id: string, @Req() req: any) {
+    return this.service.complete(+id, req.user);
+  }
+
+  @Post(':id/deliveries')
+  createDelivery(@Param('id') id: string, @Body() data: any, @Req() req: any) {
+    return this.service.createDelivery(+id, data, req.user);
+  }
+
+  @Get(':id/deliveries')
+  getDeliveries(@Param('id') id: string) {
+    return this.service.getDeliveries(+id);
+  }
+
+  @Delete('deliveries/:deliveryId')
+  deleteDelivery(@Param('deliveryId') deliveryId: string) {
+    return this.service.deleteDelivery(+deliveryId);
   }
 
   @Post(':id/send-email')
@@ -48,8 +74,8 @@ export class QuotationsController {
   }
 
   @Get(':id/pdf')
-  async getPdf(@Param('id') id: string, @Res() res: any) {
-    const buffer = await this.service.generatePdf(+id);
+  async getPdf(@Param('id') id: string, @Query('templateId') templateId: string, @Res() res: any) {
+    const buffer = await this.service.generatePdf(+id, templateId ? +templateId : undefined);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Cotizacion_Perfilgranos_${id}.pdf"`,

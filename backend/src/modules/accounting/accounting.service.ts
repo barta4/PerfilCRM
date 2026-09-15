@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Account } from './entities/account.entity';
 import { JournalEntry } from './entities/journal-entry.entity';
 import { JournalEntryLine } from './entities/journal-entry-line.entity';
@@ -17,6 +17,7 @@ export class AccountingService {
     private lineRepo: Repository<JournalEntryLine>,
     @InjectRepository(Client)
     private clientRepo: Repository<Client>,
+    private dataSource: DataSource,
   ) {}
 
   async seedUruguayAccounts() {
@@ -134,99 +135,119 @@ export class AccountingService {
       );
     }
 
-    const count = await this.entryRepo.count();
-    const entryNumber = `ASI-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+    return this.dataSource.transaction(async (manager) => {
+      const count = await manager.count(JournalEntry);
+      const entryNumber = `ASI-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
 
-    const entry = this.entryRepo.create({
-      entryNumber,
-      date: dto.date || new Date().toISOString().split('T')[0],
-      concept: dto.concept,
-      documentReference: dto.documentReference || '',
-      status: 'Posted',
-      totalAmount: totalDebit,
-      customFields: dto.customFields || {},
-    });
-
-    const savedEntry = await this.entryRepo.save(entry);
-
-    for (const l of dto.lines) {
-      const account = await this.accountRepo.findOne({ where: { id: l.accountId } });
-      if (!account) throw new NotFoundException(`Cuenta ID ${l.accountId} no encontrada.`);
-
-      let client: Client | undefined = undefined;
-      if (l.clientId) {
-        const found = await this.clientRepo.findOne({ where: { id: l.clientId } });
-        if (found) client = found;
-      }
-
-      const lineEntity = this.lineRepo.create({
-        entry: savedEntry,
-        account,
-        client,
-        description: l.description || dto.concept,
-        debit: Number(l.debit || 0),
-        credit: Number(l.credit || 0),
+      const entry = manager.create(JournalEntry, {
+        entryNumber,
+        date: dto.date || new Date().toISOString().split('T')[0],
+        concept: dto.concept,
+        documentReference: dto.documentReference || '',
+        status: 'Posted',
+        totalAmount: totalDebit,
+        customFields: dto.customFields || {},
       });
-      await this.lineRepo.save(lineEntity);
 
-      // Actualizar saldo de la cuenta contable
-      const d = Number(l.debit || 0);
-      const c = Number(l.credit || 0);
-      if (['Activo', 'Egreso'].includes(account.type)) {
-        account.balance = Number(account.balance) + d - c;
-      } else {
-        account.balance = Number(account.balance) + c - d;
+      const savedEntry = await manager.save(JournalEntry, entry);
+
+      for (const l of dto.lines) {
+        const account = await manager.findOne(Account, { where: { id: l.accountId } });
+        if (!account) throw new NotFoundException(`Cuenta ID ${l.accountId} no encontrada.`);
+
+        let client: Client | undefined = undefined;
+        if (l.clientId) {
+          const found = await manager.findOne(Client, { where: { id: l.clientId } });
+          if (found) client = found;
+        }
+
+        const lineEntity = manager.create(JournalEntryLine, {
+          entry: savedEntry,
+          account,
+          client,
+          description: l.description || dto.concept,
+          debit: Number(l.debit || 0),
+          credit: Number(l.credit || 0),
+        });
+        await manager.save(JournalEntryLine, lineEntity);
+
+        // Actualizar saldo de la cuenta contable
+        const d = Number(l.debit || 0);
+        const c = Number(l.credit || 0);
+        if (['Activo', 'Egreso'].includes(account.type)) {
+          account.balance = Number(account.balance) + d - c;
+        } else {
+          account.balance = Number(account.balance) + c - d;
+        }
+        await manager.save(Account, account);
       }
-      await this.accountRepo.save(account);
-    }
 
-    return this.entryRepo.findOne({
-      where: { id: savedEntry.id },
-      relations: ['lines', 'lines.account', 'lines.client'],
+      return manager.findOne(JournalEntry, {
+        where: { id: savedEntry.id },
+        relations: ['lines', 'lines.account', 'lines.client'],
+      });
     });
   }
 
   async deleteEntry(id: number) {
-    const entry = await this.entryRepo.findOne({
-      where: { id },
-      relations: ['lines', 'lines.account'],
-    });
+    return this.dataSource.transaction(async (manager) => {
+      const entry = await manager.findOne(JournalEntry, {
+        where: { id },
+        relations: ['lines', 'lines.account'],
+      });
 
-    if (!entry) throw new NotFoundException('Asiento no encontrado.');
+      if (!entry) throw new NotFoundException('Asiento no encontrado.');
 
-    // Revertir saldos de cuentas
-    for (const l of entry.lines) {
-      const account = l.account;
-      const d = Number(l.debit || 0);
-      const c = Number(l.credit || 0);
-      if (['Activo', 'Egreso'].includes(account.type)) {
-        account.balance = Number(account.balance) - d + c;
-      } else {
-        account.balance = Number(account.balance) - c + d;
+      // Revertir saldos de cuentas
+      for (const l of entry.lines) {
+        const account = l.account;
+        if (account) {
+          const d = Number(l.debit || 0);
+          const c = Number(l.credit || 0);
+          if (['Activo', 'Egreso'].includes(account.type)) {
+            account.balance = Number(account.balance) - d + c;
+          } else {
+            account.balance = Number(account.balance) - c + d;
+          }
+          await manager.save(Account, account);
+        }
       }
-      await this.accountRepo.save(account);
-    }
 
-    await this.entryRepo.remove(entry);
-    return { success: true };
+      await manager.remove(JournalEntry, entry);
+      return { success: true };
+    });
   }
 
   async getTrialBalance() {
     const accounts = await this.accountRepo.find({ order: { code: 'ASC' } });
-    const lines = await this.lineRepo.find({ relations: ['account'] });
+
+    // Agregación SQL directa para evitar traer todas las líneas a memoria
+    const totals: { accountId: number; totalDebit: string; totalCredit: string }[] =
+      await this.lineRepo
+        .createQueryBuilder('line')
+        .select('line.accountId', 'accountId')
+        .addSelect('SUM(line.debit)', 'totalDebit')
+        .addSelect('SUM(line.credit)', 'totalCredit')
+        .groupBy('line.accountId')
+        .getRawMany();
+
+    const totalsMap = new Map<number, { debit: number; credit: number }>();
+    for (const t of totals) {
+      totalsMap.set(Number(t.accountId), {
+        debit: Number(t.totalDebit || 0),
+        credit: Number(t.totalCredit || 0),
+      });
+    }
 
     return accounts.map((acc) => {
-      const accLines = lines.filter((l) => l.account?.id === acc.id);
-      const totalDebit = accLines.reduce((sum, l) => sum + Number(l.debit || 0), 0);
-      const totalCredit = accLines.reduce((sum, l) => sum + Number(l.credit || 0), 0);
-
+      const t = totalsMap.get(acc.id) || { debit: 0, credit: 0 };
       return {
         id: acc.id,
         code: acc.code,
         name: acc.name,
         type: acc.type,
-        totalDebit,
-        totalCredit,
+        totalDebit: t.debit,
+        totalCredit: t.credit,
         balance: acc.balance,
       };
     });

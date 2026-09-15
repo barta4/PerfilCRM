@@ -15,7 +15,8 @@
     "operations": "Operations",
     "comercial": "Sales",
     "admin": "Administration",
-    "accounting": "Uruguay Accounting"
+    "accounting": "Uruguay Accounting",
+    "pdf_templates": "PDF Templates"
   },
   "accounting": {
     "title": "Uruguay Accounting (DGI)",
@@ -55,5 +56,21 @@
     "title": "Clients & Third Parties",
     "new_client": "New Client / Third Party",
     "edit_client": "Edit Client / Third Party"
+  },
+  "google_calendar": {
+    "connect": "Connect Google Calendar",
+    "connected": "Google Calendar Connected",
+    "disconnect": "Disconnect",
+    "syncing": "Syncing...",
+    "open_calendar": "View in Google Calendar",
+    "join_meet": "Join with Google Meet",
+    "sync_task": "Synced with Google Calendar",
+    "success_connected": "Google Calendar linked successfully",
+    "success_disconnected": "Google Calendar disconnected",
+    "config_title": "Google Calendar Integration (OAuth 2.0)",
+    "config_desc": "Configure Google Cloud Console credentials to enable schedule and task synchronization.",
+    "client_id": "Google Client ID",
+    "client_secret": "Google Client Secret",
+    "redirect_uri": "Authorized Redirect URI"
   }
 }

@@ -26,7 +26,7 @@ export class Account {
   })
   type: AccountType;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   parentCode?: string | null;
 
   @Column({ type: 'decimal', precision: 14, scale: 2, default: 0 })

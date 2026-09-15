@@ -30,6 +30,9 @@ export class Task {
   @Column({ type: 'timestamp', nullable: true })
   dueDate: Date;
 
+  @Column({ nullable: true })
+  googleEventId: string;
+
   @ManyToOne(() => Client, { onDelete: 'CASCADE', eager: true })
   client: Client;
 

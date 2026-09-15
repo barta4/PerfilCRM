@@ -20,6 +20,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ModulesGuard } from '../auth/modules.guard';
 import { RequireModule } from '../auth/require-module.decorator';
 
+import { CreateClientDto } from './dto/create-client.dto';
+import { UpdateClientDto } from './dto/update-client.dto';
+
 @Controller('clients')
 @RequireModule('clients')
 @UseGuards(JwtAuthGuard, ModulesGuard)
@@ -65,12 +68,12 @@ export class ClientsController {
   }
 
   @Post()
-  create(@Body() data: Partial<Client>) {
+  create(@Body() data: CreateClientDto) {
     return this.service.create(data);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() data: Partial<Client>) {
+  update(@Param('id') id: string, @Body() data: UpdateClientDto) {
     return this.service.update(+id, data);
   }
 

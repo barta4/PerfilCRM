@@ -31,13 +31,27 @@ export class ContactsService {
     });
   }
 
-  create(data: Partial<Contact>): Promise<Contact> {
-    const entity = this.repository.create(data);
+  create(data: Partial<Contact> | any): Promise<Contact> {
+    const payload = { ...data };
+    if (payload.birthDate && typeof payload.birthDate === 'string') {
+      payload.birthDate = new Date(payload.birthDate);
+    }
+    if (payload.clientId && !payload.client) {
+      payload.client = { id: Number(payload.clientId) };
+    }
+    const entity = this.repository.create(payload as Partial<Contact>);
     return this.repository.save(entity);
   }
 
-  async update(id: number, data: Partial<Contact>): Promise<Contact | null> {
-    await this.repository.save({ ...data, id: Number(id) } as any);
+  async update(id: number, data: Partial<Contact> | any): Promise<Contact | null> {
+    const payload = { ...data, id: Number(id) };
+    if (payload.birthDate && typeof payload.birthDate === 'string') {
+      payload.birthDate = new Date(payload.birthDate);
+    }
+    if (payload.clientId && !payload.client) {
+      payload.client = { id: Number(payload.clientId) };
+    }
+    await this.repository.save(payload as any);
     return this.findOne(id);
   }
 

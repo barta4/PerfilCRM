@@ -1,6 +1,8 @@
+
+
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Card, CardBody, CardHeader, CardFooter } from '@/components/ui/Card';
@@ -11,10 +13,10 @@ import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
 import {
   Mail, Plus, Search, Eye, Code, Bold, Italic, Underline, Strikethrough,
-  AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Link as LinkIcon,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered, Link as LinkIcon,
   Image as ImageIcon, Eraser, Calendar, User, CheckCircle2, XCircle,
   AlertCircle, ChevronRight, RefreshCw, Filter, ArrowLeft, ExternalLink,
-  Trash2
+  Trash2, ChevronDown, ChevronUp, Minus, Palette, Type, Sparkles, Copy
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
@@ -32,6 +34,26 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
   const [viewMode, setViewMode] = useState<'visual' | 'code'>('visual');
   const editorRef = useRef<HTMLDivElement>(null);
   const [htmlValue, setHtmlValue] = useState(value);
+  const savedRangeRef = useRef<Range | null>(null);
+
+  // Active format state
+  const [activeFormats, setActiveFormats] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    strikeThrough: false,
+    justifyLeft: false,
+    justifyCenter: false,
+    justifyRight: false,
+    justifyFull: false,
+    insertUnorderedList: false,
+    insertOrderedList: false,
+  });
+
+  // Link modal state
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
 
   // Image upload state
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -40,6 +62,7 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Synchronize incoming value prop
   useEffect(() => {
     setHtmlValue(value);
     if (editorRef.current && editorRef.current.innerHTML !== value) {
@@ -47,49 +70,158 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
     }
   }, [value]);
 
+  const saveSelection = () => {
+    if (typeof window === 'undefined') return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      try {
+        savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+      } catch {}
+    }
+  };
+
+  const restoreSelection = () => {
+    if (typeof window === 'undefined') return;
+    if (savedRangeRef.current && editorRef.current) {
+      editorRef.current.focus();
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(savedRangeRef.current);
+      }
+    }
+  };
+
+  const updateActiveFormats = useCallback(() => {
+    if (typeof document === 'undefined' || viewMode !== 'visual') return;
+    saveSelection();
+    try {
+      setActiveFormats({
+        bold: document.queryCommandState('bold'),
+        italic: document.queryCommandState('italic'),
+        underline: document.queryCommandState('underline'),
+        strikeThrough: document.queryCommandState('strikeThrough'),
+        justifyLeft: document.queryCommandState('justifyLeft'),
+        justifyCenter: document.queryCommandState('justifyCenter'),
+        justifyRight: document.queryCommandState('justifyRight'),
+        justifyFull: document.queryCommandState('justifyFull'),
+        insertUnorderedList: document.queryCommandState('insertUnorderedList'),
+        insertOrderedList: document.queryCommandState('insertOrderedList'),
+      });
+    } catch {}
+  }, [viewMode]);
+
   const handleVisualChange = () => {
     if (editorRef.current) {
       const html = editorRef.current.innerHTML;
+      setHtmlValue(html);
       onChange(html);
     }
   };
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
+    setHtmlValue(val);
     onChange(val);
   };
 
-  const execCmd = (command: string, value: string = '') => {
-    document.execCommand(command, false, value);
+  const handleSwitchMode = (mode: 'visual' | 'code') => {
+    if (mode === 'code') {
+      const currentHtml = editorRef.current ? editorRef.current.innerHTML : htmlValue;
+      setHtmlValue(currentHtml);
+      onChange(currentHtml);
+    } else {
+      setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.innerHTML = htmlValue;
+        }
+      }, 0);
+      onChange(htmlValue);
+    }
+    setViewMode(mode);
+  };
+
+  const execCmd = (command: string, cmdValue: string = '') => {
+    if (viewMode !== 'visual') return;
+    editorRef.current?.focus();
+    restoreSelection();
+    try {
+      document.execCommand('styleWithCSS', false, 'true');
+    } catch {}
+    document.execCommand(command, false, cmdValue);
     handleVisualChange();
+    updateActiveFormats();
+  };
+
+  const handleFormatBlock = (tag: string) => {
+    if (!tag) return;
+    execCmd('formatBlock', tag);
+  };
+
+  const handleTextColor = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const color = e.target.value;
+    if (color) {
+      execCmd('foreColor', color);
+    }
   };
 
   const insertVariable = (variable: string) => {
     if (viewMode === 'visual') {
       editorRef.current?.focus();
-      const selection = window.getSelection();
-      if (!selection || !selection.rangeCount) return;
-      selection.deleteFromDocument();
-      const range = selection.getRangeAt(0);
-      const textNode = document.createTextNode(variable);
-      range.insertNode(textNode);
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
+      restoreSelection();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+        sel.deleteFromDocument();
+        const range = sel.getRangeAt(0);
+        const textNode = document.createTextNode(variable);
+        range.insertNode(textNode);
+        range.setStartAfter(textNode);
+        range.setEndAfter(textNode);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        savedRangeRef.current = range;
+      } else if (editorRef.current) {
+        editorRef.current.innerHTML += variable;
+      }
       handleVisualChange();
+      updateActiveFormats();
     } else {
-      onChange(value + variable);
+      const next = htmlValue + variable;
+      setHtmlValue(next);
+      onChange(next);
     }
   };
 
-  const addLink = () => {
-    const url = prompt('Introduce la URL del enlace (ej. https://ejemplo.com):');
-    if (url) {
+  const openLinkModal = () => {
+    saveSelection();
+    const sel = window.getSelection();
+    const selectedText = sel ? sel.toString() : '';
+    setLinkText(selectedText);
+    setLinkUrl('');
+    setIsLinkModalOpen(true);
+  };
+
+  const handleApplyLink = () => {
+    setIsLinkModalOpen(false);
+    if (!linkUrl.trim()) return;
+
+    restoreSelection();
+    const url = linkUrl.startsWith('http://') || linkUrl.startsWith('https://') || linkUrl.startsWith('mailto:')
+      ? linkUrl.trim()
+      : `https://${linkUrl.trim()}`;
+
+    if (linkText.trim() && (!savedRangeRef.current || savedRangeRef.current.collapsed)) {
+      const linkHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText.trim()}</a>`;
+      execCmd('insertHTML', linkHtml);
+    } else {
       execCmd('createLink', url);
     }
+    toast.success('Enlace insertado');
   };
 
   const addImage = () => {
+    saveSelection();
     setIsImageModalOpen(true);
   };
 
@@ -111,6 +243,7 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
       const filename = res.data?.filename;
       if (filename) {
         const absoluteUrl = `${window.location.origin}/api/documents/${filename}`;
+        restoreSelection();
         execCmd('insertImage', absoluteUrl);
         toast.success('Imagen subida e insertada correctamente.');
         setIsImageModalOpen(false);
@@ -130,6 +263,7 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
 
   const handleInsertImageUrl = () => {
     if (imageUrlInput.trim()) {
+      restoreSelection();
       execCmd('insertImage', imageUrlInput.trim());
       setImageUrlInput('');
       setIsImageModalOpen(false);
@@ -139,98 +273,322 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
 
   return (
     <div className="border-2 border-gray-200 rounded-none overflow-hidden bg-white shadow-sm focus-within:border-pureza-blue focus-within:ring-2 focus-within:ring-pureza-blue/15 transition-all">
-      {/* Editor tabs & Toolbar */}
+      {/* Editor tabs & Variable inserter */}
       <div className="bg-gray-50 border-b-2 border-gray-200 p-2 flex flex-wrap gap-2 items-center justify-between">
         <div className="flex gap-1 items-center">
           <button
             type="button"
-            onClick={() => setViewMode('visual')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold uppercase tracking-wider transition-all ${viewMode === 'visual' ? 'bg-pureza-blue text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSwitchMode('visual')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              viewMode === 'visual' ? 'bg-pureza-blue text-white shadow-sm font-bold' : 'text-gray-500 hover:text-gray-800'
+            }`}
           >
             <Eye className="w-3.5 h-3.5" /> Editor Visual
           </button>
           <button
             type="button"
-            onClick={() => setViewMode('code')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold uppercase tracking-wider transition-all ${viewMode === 'code' ? 'bg-pureza-blue text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSwitchMode('code')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              viewMode === 'code' ? 'bg-pureza-blue text-white shadow-sm font-bold' : 'text-gray-500 hover:text-gray-800'
+            }`}
           >
             <Code className="w-3.5 h-3.5" /> Código HTML
           </button>
         </div>
 
         {/* Dynamic variables */}
-        <div className="flex gap-1.5 items-center">
+        <div className="flex gap-1.5 items-center flex-wrap">
           <span className="text-[10px] uppercase font-bold text-gray-400">Insertar Variable:</span>
           {[
             { tag: '{contact_name}', label: 'Contacto' },
             { tag: '{client_name}', label: 'Empresa' },
+            { tag: '{client_code}', label: 'Código' },
           ].map(v => (
             <button
               key={v.tag}
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertVariable(v.tag)}
-              className="bg-pureza-blue/5 hover:bg-pureza-blue/15 text-pureza-blue font-bold uppercase px-2.5 py-1 text-[10px] border border-pureza-blue/15 transition-colors"
+              className="bg-pureza-blue/10 hover:bg-pureza-blue/20 text-pureza-blue font-bold uppercase px-2.5 py-1 text-[10px] border border-pureza-blue/25 transition-colors cursor-pointer"
               title={`Insertar ${v.tag}`}
             >
-              {v.label}
+              + {v.label}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Visual Mode Rich Toolbar */}
       {viewMode === 'visual' && (
-        <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-wrap gap-1 items-center">
-          <button type="button" onClick={() => execCmd('bold')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Negrita"><Bold className="w-4 h-4" /></button>
-          <button type="button" onClick={() => execCmd('italic')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Cursiva"><Italic className="w-4 h-4" /></button>
-          <button type="button" onClick={() => execCmd('underline')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Subrayado"><Underline className="w-4 h-4" /></button>
-          <button type="button" onClick={() => execCmd('strikeThrough')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Tachado"><Strikethrough className="w-4 h-4" /></button>
-          
-          <div className="h-5 w-[1px] bg-gray-200 mx-1" />
-          
-          <button type="button" onClick={() => execCmd('justifyLeft')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Alinear Izquierda"><AlignLeft className="w-4 h-4" /></button>
-          <button type="button" onClick={() => execCmd('justifyCenter')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Centrar"><AlignCenter className="w-4 h-4" /></button>
-          <button type="button" onClick={() => execCmd('justifyRight')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Alinear Derecha"><AlignRight className="w-4 h-4" /></button>
-          
+        <div className="bg-gray-50/90 border-b border-gray-200 px-3 py-2 flex flex-wrap gap-1 items-center">
+          {/* Headings / Block Dropdown */}
+          <select
+            aria-label="Formato de texto"
+            onMouseDown={(e) => e.stopPropagation()}
+            onChange={(e) => handleFormatBlock(e.target.value)}
+            className="text-xs bg-white border border-gray-200 rounded px-2 py-1 font-semibold text-gray-700 outline-none hover:border-gray-300"
+            defaultValue=""
+          >
+            <option value="" disabled>Estilo...</option>
+            <option value="<p>">Párrafo Normal</option>
+            <option value="<h1>">Título Grande (H1)</option>
+            <option value="<h2>">Título Mediano (H2)</option>
+            <option value="<h3>">Título Pequeño (H3)</option>
+            <option value="<blockquote>">Cita / Destacado</option>
+          </select>
+
           <div className="h-5 w-[1px] bg-gray-200 mx-1" />
 
-          <button type="button" onClick={() => execCmd('insertUnorderedList')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Lista Viñetas"><List className="w-4 h-4" /></button>
-          <button type="button" onClick={() => execCmd('insertOrderedList')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Lista Numerada"><ListOrdered className="w-4 h-4" /></button>
+          {/* Inline Text Formatting Buttons */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('bold')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.bold ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Negrita (B)"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('italic')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.italic ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Cursiva (I)"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('underline')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.underline ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Subrayado (U)"
+          >
+            <Underline className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('strikeThrough')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.strikeThrough ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Tachado (S)"
+          >
+            <Strikethrough className="w-4 h-4" />
+          </button>
 
           <div className="h-5 w-[1px] bg-gray-200 mx-1" />
 
-          <button type="button" onClick={addLink} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Insertar Enlace"><LinkIcon className="w-4 h-4" /></button>
-          <button type="button" onClick={addImage} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Insertar Imagen"><ImageIcon className="w-4 h-4" /></button>
-          
+          {/* Alignments */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('justifyLeft')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.justifyLeft ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Alinear a la Izquierda"
+          >
+            <AlignLeft className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('justifyCenter')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.justifyCenter ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Centrar Texto"
+          >
+            <AlignCenter className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('justifyRight')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.justifyRight ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Alinear a la Derecha"
+          >
+            <AlignRight className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('justifyFull')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.justifyFull ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Justificar Texto"
+          >
+            <AlignJustify className="w-4 h-4" />
+          </button>
+
           <div className="h-5 w-[1px] bg-gray-200 mx-1" />
-          
-          <button type="button" onClick={() => execCmd('removeFormat')} className="p-1.5 rounded-none hover:bg-gray-200 text-gray-700 transition-colors" title="Limpiar Formato"><Eraser className="w-4 h-4" /></button>
+
+          {/* Lists */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('insertUnorderedList')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.insertUnorderedList ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Lista con Viñetas"
+          >
+            <List className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('insertOrderedList')}
+            className={cn(
+              "p-1.5 rounded hover:bg-gray-200 transition-colors cursor-pointer",
+              activeFormats.insertOrderedList ? "bg-pureza-blue text-white shadow-xs" : "text-gray-700"
+            )}
+            title="Lista Numerada"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </button>
+
+          <div className="h-5 w-[1px] bg-gray-200 mx-1" />
+
+          {/* Color Picker */}
+          <label
+            className="flex items-center gap-1 p-1 rounded hover:bg-gray-200 cursor-pointer text-gray-700 text-xs font-semibold"
+            title="Color de Texto"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <Palette className="w-4 h-4 text-gray-600" />
+            <input
+              type="color"
+              onChange={handleTextColor}
+              className="w-5 h-5 cursor-pointer rounded border-0 p-0 bg-transparent"
+              title="Seleccionar color de texto"
+            />
+          </label>
+
+          <div className="h-5 w-[1px] bg-gray-200 mx-1" />
+
+          {/* Links, Media & Utilities */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openLinkModal}
+            className="p-1.5 rounded hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
+            title="Insertar Enlace Web"
+          >
+            <LinkIcon className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={addImage}
+            className="p-1.5 rounded hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
+            title="Insertar Imagen"
+          >
+            <ImageIcon className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('insertHorizontalRule')}
+            className="p-1.5 rounded hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
+            title="Línea Divisoria (HR)"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => execCmd('removeFormat')}
+            className="p-1.5 rounded hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
+            title="Limpiar Formato"
+          >
+            <Eraser className="w-4 h-4" />
+          </button>
         </div>
       )}
 
       {/* Editor Content Area */}
-      <div className="p-1 min-h-[300px] bg-white">
+      <div className="p-2 min-h-[320px] bg-white">
         {viewMode === 'visual' ? (
           <div
             ref={editorRef}
             contentEditable
+            suppressContentEditableWarning
             onInput={handleVisualChange}
             onBlur={handleVisualChange}
-            className="w-full min-h-[292px] p-4 outline-none text-sm text-gray-800 prose prose-sm max-w-none focus:prose-indigo border border-transparent overflow-y-auto"
+            onKeyUp={updateActiveFormats}
+            onMouseUp={updateActiveFormats}
+            onSelect={updateActiveFormats}
+            className="w-full min-h-[300px] p-4 outline-none text-sm text-gray-800 border border-gray-100 rounded overflow-y-auto rich-email-editor-content focus:border-pureza-blue/40"
             data-placeholder={placeholder}
-            style={{ minHeight: '292px' }}
+            style={{ minHeight: '300px' }}
           />
         ) : (
           <textarea
             value={htmlValue}
             onChange={handleCodeChange}
-            className="w-full min-h-[292px] p-4 outline-none font-mono text-xs text-gray-800 border-0 focus:ring-0 resize-y"
+            className="w-full min-h-[300px] p-4 outline-none font-mono text-xs text-slate-800 border border-gray-100 rounded focus:border-pureza-blue/40 focus:ring-0 resize-y bg-slate-50 font-medium"
             placeholder="Escribe o pega aquí tu código HTML..."
-            style={{ minHeight: '292px' }}
+            style={{ minHeight: '300px' }}
           />
         )}
       </div>
 
-      {/* Premium Image Uploader Modal */}
+      {/* Link Insertion Modal */}
+      <Modal
+        open={isLinkModalOpen}
+        onClose={() => setIsLinkModalOpen(false)}
+        title="Insertar Enlace"
+        size="sm"
+      >
+        <div className="flex flex-col gap-3">
+          <Input
+            label="Texto a Mostrar (Opcional)"
+            placeholder="Texto del enlace..."
+            value={linkText}
+            onChange={(e) => setLinkText(e.target.value)}
+          />
+          <Input
+            label="Dirección URL *"
+            placeholder="https://ejemplo.com"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+          />
+          <div className="flex justify-end gap-2 mt-2">
+            <Button type="button" variant="ghost" onClick={() => setIsLinkModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleApplyLink} disabled={!linkUrl.trim()}>
+              Insertar Enlace
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Image Insertion Modal */}
       <Modal
         open={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
@@ -238,15 +596,14 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
         size="md"
       >
         <div className="flex flex-col gap-4">
-          {/* Tabs */}
           <div className="flex border-b border-gray-200">
             <button
               type="button"
               onClick={() => setImageTab('upload')}
               className={cn(
-                "flex-1 pb-2 text-sm font-semibold border-b-2 text-center transition-colors",
+                "flex-1 pb-2 text-sm font-semibold border-b-2 text-center transition-colors cursor-pointer",
                 imageTab === 'upload'
-                  ? "border-pureza-blue text-pureza-blue"
+                  ? "border-pureza-blue text-pureza-blue font-bold"
                   : "border-transparent text-gray-500 hover:text-gray-800"
               )}
             >
@@ -256,9 +613,9 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
               type="button"
               onClick={() => setImageTab('url')}
               className={cn(
-                "flex-1 pb-2 text-sm font-semibold border-b-2 text-center transition-colors",
+                "flex-1 pb-2 text-sm font-semibold border-b-2 text-center transition-colors cursor-pointer",
                 imageTab === 'url'
-                  ? "border-pureza-blue text-pureza-blue"
+                  ? "border-pureza-blue text-pureza-blue font-bold"
                   : "border-transparent text-gray-500 hover:text-gray-800"
               )}
             >
@@ -266,7 +623,6 @@ export function HtmlEditor({ value, onChange, placeholder }: HtmlEditorProps) {
             </button>
           </div>
 
-          {/* Tab Contents */}
           {imageTab === 'upload' ? (
             <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 hover:border-pureza-blue/50 transition-colors bg-gray-50">
               <input
@@ -335,6 +691,7 @@ export function CampaignsModule() {
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllSegments, setShowAllSegments] = useState(false);
   
   // Recipient filtering
   const [recipSearch, setRecipSearch] = useState('');
@@ -403,6 +760,20 @@ export function CampaignsModule() {
     } finally {
       setResendingUnopened(false);
     }
+  };
+
+  const [showPreviewContent, setShowPreviewContent] = useState(false);
+
+  const handleDuplicateCampaign = () => {
+    if (!detailedCampaign) return;
+    setForm({
+      subject: `${detailedCampaign.subject} (Copia)`,
+      content: detailedCampaign.content || '',
+      segments: [],
+      statuses: [],
+    });
+    setModalOpen(true);
+    toast.success('Campaña duplicada cargada en el editor.');
   };
 
   // Form states
@@ -681,12 +1052,37 @@ export function CampaignsModule() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-gray-700 border-2 border-gray-200 hover:border-pureza-blue hover:bg-pureza-blue/5 hover:text-pureza-blue font-bold cursor-pointer"
+                    icon={<Copy className="w-3.5 h-3.5" />} 
+                    onClick={handleDuplicateCampaign}
+                    title="Duplicar esta campaña para editarla y enviarla nuevamente"
+                  >
+                    Duplicar Campaña
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={cn(
+                      "border-2 font-bold cursor-pointer transition-colors",
+                      showPreviewContent 
+                        ? "border-pureza-blue text-pureza-blue bg-pureza-blue/5" 
+                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                    )}
+                    icon={<Eye className="w-3.5 h-3.5" />} 
+                    onClick={() => setShowPreviewContent(!showPreviewContent)}
+                    title="Ver u ocultar el contenido del correo enviado"
+                  >
+                    {showPreviewContent ? 'Ocultar Correo' : 'Ver Correo'}
+                  </Button>
                   {detailedCampaign.stats.sent > detailedCampaign.stats.opened && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="text-pureza-blue border-2 border-pureza-blue/20 hover:border-pureza-blue hover:bg-pureza-blue/5"
+                      className="text-pureza-blue border-2 border-pureza-blue/20 hover:border-pureza-blue hover:bg-pureza-blue/5 cursor-pointer"
                       icon={<RefreshCw className="w-3.5 h-3.5" />} 
                       onClick={handleResendUnopened}
                       loading={resendingUnopened}
@@ -698,7 +1094,7 @@ export function CampaignsModule() {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="text-amber-600 border-2 border-amber-200 hover:border-amber-300 hover:bg-amber-50"
+                      className="text-amber-600 border-2 border-amber-200 hover:border-amber-300 hover:bg-amber-50 cursor-pointer"
                       icon={<RefreshCw className="w-3.5 h-3.5" />} 
                       onClick={handleRetryCampaign}
                       loading={retryingCampaign}
@@ -706,7 +1102,7 @@ export function CampaignsModule() {
                       Reintentar Fallidos
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={() => refetchDetails()} title="Actualizar estadísticas">
+                  <Button variant="ghost" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={() => refetchDetails()} title="Actualizar estadísticas" className="cursor-pointer">
                     Actualizar
                   </Button>
                   <Button 
@@ -715,6 +1111,7 @@ export function CampaignsModule() {
                     icon={<Trash2 className="w-3.5 h-3.5" />} 
                     onClick={handleDeleteCampaign}
                     loading={deletingCampaign}
+                    className="cursor-pointer"
                   >
                     Eliminar
                   </Button>
@@ -748,6 +1145,35 @@ export function CampaignsModule() {
                   color="amber"
                 />
               </div>
+
+              {/* Optional Email Preview Card */}
+              {showPreviewContent && (
+                <Card className="border-2 border-pureza-blue/30 shadow-sm">
+                  <CardHeader className="bg-pureza-blue/5 border-b border-pureza-blue/15 flex items-center justify-between p-4">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-pureza-blue" />
+                      <h3 className="font-bold text-gray-900 text-xs uppercase tracking-wider">
+                        Contenido del Correo Enviado (Plantilla Base)
+                      </h3>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs font-bold text-pureza-blue hover:underline cursor-pointer"
+                      onClick={handleDuplicateCampaign}
+                      icon={<Copy className="w-3.5 h-3.5" />}
+                    >
+                      Editar en Nueva Campaña
+                    </Button>
+                  </CardHeader>
+                  <CardBody className="p-6 bg-white">
+                    <div
+                      className="rich-email-editor-content border border-gray-100 p-4 rounded bg-gray-50/50 max-h-[350px] overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: detailedCampaign.content || '<p className="text-gray-400 italic">Sin contenido</p>' }}
+                    />
+                  </CardBody>
+                </Card>
+              )}
 
               {/* Detailed logs table */}
               <Card>
@@ -889,37 +1315,72 @@ export function CampaignsModule() {
 
           {/* Segment Selector */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-              Segmentar Clientes Destinatarios
-            </label>
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+                Segmentar Clientes Destinatarios
+              </label>
+              {uniqueSegments.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSegments(!showAllSegments)}
+                  className="text-xs font-bold text-pureza-blue hover:underline flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  {showAllSegments ? (
+                    <>
+                      <ChevronUp className="w-3.5 h-3.5" /> Mostrar menos
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5" /> + Ver todos ({uniqueSegments.length} segmentos)
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-2 items-center">
               <button
                 type="button"
                 onClick={() => handleSegmentToggle('all')}
                 className={cn(
-                  "px-3 py-1.5 border-2 text-xs font-bold uppercase tracking-wider transition-colors",
+                  "px-3 py-1.5 border-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer",
                   form.segments.includes('all') || form.segments.length === 0
-                    ? "bg-pureza-blue text-white border-pureza-blue"
+                    ? "bg-pureza-blue text-white border-pureza-blue shadow-xs"
                     : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
                 )}
               >
                 Todos los Clientes
               </button>
-              {uniqueSegments.map(seg => (
+
+              {(showAllSegments
+                ? uniqueSegments
+                : uniqueSegments.filter((seg, idx) => idx < 5 || (form.segments.includes(seg) && !form.segments.includes('all')))
+              ).map(seg => (
                 <button
                   key={seg}
                   type="button"
                   onClick={() => handleSegmentToggle(seg)}
                   className={cn(
-                    "px-3 py-1.5 border-2 text-xs font-bold uppercase tracking-wider transition-colors",
+                    "px-3 py-1.5 border-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer",
                     form.segments.includes(seg) && !form.segments.includes('all')
-                      ? "bg-pureza-blue text-white border-pureza-blue"
+                      ? "bg-pureza-blue text-white border-pureza-blue shadow-xs"
                       : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
                   )}
                 >
                   Segmento: {seg}
                 </button>
               ))}
+
+              {!showAllSegments && uniqueSegments.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSegments(true)}
+                  className="px-3 py-1.5 border-2 border-dashed border-gray-300 hover:border-pureza-blue text-xs font-bold text-gray-600 hover:text-pureza-blue bg-gray-50 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Ver todos los segmentos"
+                >
+                  <Plus className="w-3.5 h-3.5" /> {uniqueSegments.length - 5} más...
+                </button>
+              )}
             </div>
 
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 mt-4">

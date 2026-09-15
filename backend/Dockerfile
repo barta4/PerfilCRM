@@ -1,36 +1,37 @@
 # --- Build Stage ---
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies (including devDependencies for compilation)
-RUN pnpm install --no-frozen-lockfile
+# Install all dependencies (including devDependencies for compilation)
+RUN pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
 
-# Copy the rest of the application files
+# Copy the rest of the application source code
 COPY . .
 
 # Build the NestJS application
 RUN pnpm run build
 
-# Remove development dependencies to keep the image slim
+# Remove development dependencies to keep the production layer slim
 RUN pnpm prune --prod
 
 # --- Production Stage ---
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Set directory permissions for non-root user
-RUN chown node:node /app
+# Set directory permissions and create uploads directory for non-root user
+RUN mkdir -p /app/uploads && chown -R node:node /app
 
 # Set production environment
 ENV NODE_ENV=production
+ENV PORT=3001
 
 # Copy built application and required production dependencies
 COPY --from=builder --chown=node:node /app/dist ./dist

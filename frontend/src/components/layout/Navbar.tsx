@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Calendar, MapPin, ClipboardList,
   BarChart3, Settings, ChevronDown, Menu, X, LogOut,
-  FileText, Mail, Package, ShieldCheck, Bot, Building2, Calculator
+  FileText, Mail, Package, ShieldCheck, Bot, Building2, Calculator, FileCode
 } from 'lucide-react';
 import { NotificationPanel } from '@/components/ui/NotificationPanel';
 import { useAuthStore } from '@/store/authStore';
@@ -79,6 +79,7 @@ export function Navbar() {
       items: [
         { label: t('nav.general_settings', 'Ajustes Generales'), href: '/admin', icon: Settings, moduleId: 'admin' },
         { label: t('nav.modules', 'Módulos del Sistema'), href: '/admin/modules', icon: Settings, moduleId: 'admin' },
+        { label: t('nav.pdf_templates', 'Plantillas PDF'), href: '/admin/pdf-templates', icon: FileCode, moduleId: 'admin' },
         { label: t('nav.custom_fields', 'Campos Extra'), href: '/admin/custom-fields', icon: Settings, moduleId: 'admin' },
       ]
     }
@@ -346,7 +347,7 @@ export function Navbar() {
       )}
 
       {/* Global AI Chat Widget */}
-      <ChatWidget />
+      {isModuleEnabled('ai_automation') && <ChatWidget />}
     </nav>
   );
 }

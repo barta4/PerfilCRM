@@ -21,6 +21,40 @@ interface AuthState {
   hasModule: (moduleId: string) => boolean;
 }
 
+const MODULE_ALIASES: Record<string, string[]> = {
+  crm_clients: ['crm_clients', 'clients'],
+  clients: ['crm_clients', 'clients'],
+  sales_quotations: ['sales_quotations', 'quotations'],
+  quotations: ['sales_quotations', 'quotations'],
+  comms_visits: ['comms_visits', 'visits'],
+  visits: ['comms_visits', 'visits'],
+  ops_tasks: ['ops_tasks', 'tasks'],
+  tasks: ['ops_tasks', 'tasks'],
+  ops_events: ['ops_events', 'events', 'calendar'],
+  events: ['ops_events', 'events', 'calendar'],
+  inventory_stock: ['inventory_stock', 'inventory'],
+  inventory: ['inventory_stock', 'inventory'],
+  inspections_field: ['inspections_field', 'inspections'],
+  inspections: ['inspections_field', 'inspections'],
+  email_campaigns: ['email_campaigns', 'campaigns'],
+  campaigns: ['email_campaigns', 'campaigns'],
+  ai_automation: ['ai_automation', 'ai'],
+  ai: ['ai_automation', 'ai'],
+  reports_bi: ['reports_bi', 'reports'],
+  reports: ['reports_bi', 'reports'],
+  procurement_suppliers: ['procurement_suppliers', 'suppliers'],
+  suppliers: ['procurement_suppliers', 'suppliers'],
+  accounting_uruguay: ['accounting_uruguay', 'accounting'],
+  accounting: ['accounting_uruguay', 'accounting'],
+  google_calendar: ['google_calendar', 'google-calendar'],
+  'google-calendar': ['google_calendar', 'google-calendar'],
+  pdf_templates: ['pdf_templates', 'pdf-templates'],
+  'pdf-templates': ['pdf_templates', 'pdf-templates'],
+  staff: ['staff'],
+  admin: ['admin'],
+  dashboard: ['dashboard'],
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -48,8 +82,13 @@ export const useAuthStore = create<AuthState>()(
       hasModule: (moduleId: string) => {
         const user = get().user;
         if (!user) return false;
+        // Admins and full access users have total access
+        if (user.role === 'admin') return true;
         if (user.allowedModules === null || user.allowedModules === undefined) return true;
-        return user.allowedModules.includes(moduleId);
+        if (moduleId === 'dashboard') return true;
+
+        const aliases = MODULE_ALIASES[moduleId] || [moduleId];
+        return aliases.some((alias) => user.allowedModules?.includes(alias));
       },
     }),
     {
