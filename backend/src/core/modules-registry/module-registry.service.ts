@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ModuleRegistry } from './module-registry.entity';
@@ -9,7 +9,7 @@ import { GoogleCalendarManifest } from '../../modules/google-calendar/google-cal
 import { PdfTemplatesManifest } from '../../modules/pdf-templates/pdf-templates.manifest';
 
 @Injectable()
-export class ModuleRegistryService implements OnModuleInit {
+export class ModuleRegistryService implements OnApplicationBootstrap {
   private readonly logger = new Logger(ModuleRegistryService.name);
   private manifestsRegistry = new Map<string, ModuleManifest>();
 
@@ -18,9 +18,26 @@ export class ModuleRegistryService implements OnModuleInit {
     private moduleRepo: Repository<ModuleRegistry>,
   ) {}
 
-  async onModuleInit() {
+  async onApplicationBootstrap() {
     this.registerStandardManifests();
-    await this.syncDatabaseRegistry();
+    this.safeSyncDatabaseRegistry();
+  }
+
+  private async safeSyncDatabaseRegistry(retries = 10, delayMs = 2000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        await this.syncDatabaseRegistry();
+        this.logger.log('Registro de módulos sincronizado exitosamente con la base de datos.');
+        return;
+      } catch (err: any) {
+        this.logger.warn(
+          `[Módulos] Intento ${attempt}/${retries}: Esperando inicialización de tabla module_registry (${err.message}). Reintentando en ${delayMs / 1000}s...`,
+        );
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
   }
 
   private registerStandardManifests() {
@@ -223,17 +240,29 @@ export class ModuleRegistryService implements OnModuleInit {
   }
 
   async getAllModules(): Promise<ModuleRegistry[]> {
-    return this.moduleRepo.find({ order: { category: 'ASC', id: 'ASC' } });
+    try {
+      return await this.moduleRepo.find({ order: { category: 'ASC', id: 'ASC' } });
+    } catch {
+      return [];
+    }
   }
 
   async getEnabledModules(): Promise<ModuleRegistry[]> {
-    return this.moduleRepo.find({ where: { isEnabled: true } });
+    try {
+      return await this.moduleRepo.find({ where: { isEnabled: true } });
+    } catch {
+      return [];
+    }
   }
 
   async isModuleEnabled(moduleId: string): Promise<boolean> {
-    const record = await this.moduleRepo.findOne({ where: { id: moduleId } });
-    if (!record) return true; // Default allow if unmanaged
-    return record.isEnabled;
+    try {
+      const record = await this.moduleRepo.findOne({ where: { id: moduleId } });
+      if (!record) return true; // Default allow if unmanaged
+      return record.isEnabled;
+    } catch {
+      return true;
+    }
   }
 
   async toggleModule(id: string, isEnabled: boolean): Promise<ModuleRegistry> {

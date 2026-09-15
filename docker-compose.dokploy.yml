@@ -1,6 +1,6 @@
 services:
   perfil-backend:
-    image: alfredobartaburu/perfilcrm-backend:v1.3
+    image: alfredobartaburu/perfilcrm-backend:v1.4
     platform: linux/amd64
     container_name: perfil-backend
     restart: unless-stopped

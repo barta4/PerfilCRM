@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PdfTemplate } from './entities/pdf-template.entity';
@@ -7,7 +7,7 @@ import { PdfTemplateLayoutConfig } from './interfaces/pdf-template.interface';
 import { Quotation } from '../../quotations/quotation.entity';
 
 @Injectable()
-export class PdfTemplatesService implements OnModuleInit {
+export class PdfTemplatesService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PdfTemplatesService.name);
 
   constructor(
@@ -16,8 +16,24 @@ export class PdfTemplatesService implements OnModuleInit {
     private readonly renderer: PdfRendererService,
   ) {}
 
-  async onModuleInit() {
-    await this.seedDefaultTemplates();
+  async onApplicationBootstrap() {
+    this.safeSeedDefaultTemplates();
+  }
+
+  private async safeSeedDefaultTemplates(retries = 10, delayMs = 2000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        await this.seedDefaultTemplates();
+        return;
+      } catch (err: any) {
+        this.logger.warn(
+          `[PDF Templates] Intento ${attempt}/${retries}: Esperando sincronización de tabla pdf_templates (${err.message}). Reintentando en ${delayMs / 1000}s...`,
+        );
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
   }
 
   async seedDefaultTemplates() {

@@ -70,8 +70,12 @@ async function bootstrap() {
   console.log(`[PERFIL CRM] Backend running on http://0.0.0.0:${port}`);
 
   // Seed default admin user
-  const { AuthService } = require('./auth/auth.service');
-  const authService = app.get(AuthService);
-  await authService.seedAdmin();
+  try {
+    const { AuthService } = require('./auth/auth.service');
+    const authService = app.get(AuthService);
+    await authService.seedAdmin();
+  } catch (err: any) {
+    console.warn(`[PERFIL CRM] Seed admin en espera de sincronización de BD: ${err.message}`);
+  }
 }
 bootstrap();
